@@ -57,17 +57,18 @@ app.get('/api/collections/:id', withDB(async (req, res) => {
 app.post('/api/collections', withDB(async (req, res) => {
   const { name } = req.body;
   if (!name?.trim()) return res.status(400).json({ error: 'name is required' });
-  const doc = { name: name.trim(), requests: [], createdAt: new Date(), updatedAt: new Date() };
+  const doc = { name: name.trim(), requests: [], folders: [], createdAt: new Date(), updatedAt: new Date() };
   const result = await db.collection('collections').insertOne(doc);
   res.status(201).json({ ...doc, _id: result.insertedId });
 }));
 
 // PUT update collection (name + full requests array)
 app.put('/api/collections/:id', withDB(async (req, res) => {
-  const { name, requests } = req.body;
+  const { name, requests, folders } = req.body;
   const update = { updatedAt: new Date() };
   if (name !== undefined) update.name = name.trim();
   if (requests !== undefined) update.requests = requests;
+  if (folders !== undefined) update.folders = folders;
   const result = await db.collection('collections')
     .findOneAndUpdate({ _id: toId(req.params.id) }, { $set: update }, { returnDocument: 'after' });
   if (!result) return res.status(404).json({ error: 'Not found' });
