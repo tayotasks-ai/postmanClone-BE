@@ -2,6 +2,7 @@ import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import { MongoClient, ObjectId } from 'mongodb';
+import fetch from 'node-fetch';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
