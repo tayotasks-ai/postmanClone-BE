@@ -34,6 +34,48 @@ const withDB = (fn) => async (req, res) => {
 };
 
 // ══════════════════════════════════════════════════════════
+// HTTP PROXY  (forwards requests server-side — bypasses browser CORS)
+// ══════════════════════════════════════════════════════════
+
+app.post('/api/proxy', async (req, res) => {
+  const { url, method = 'GET', headers = {}, body } = req.body;
+  if (!url) return res.status(400).json({ error: 'url is required' });
+
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 30000);
+
+    const fetchOpts = { method, headers, signal: controller.signal };
+    if (body !== undefined && !['GET', 'HEAD'].includes(method.toUpperCase())) {
+      fetchOpts.body = body;
+    }
+
+    const upstream = await fetch(url, fetchOpts);
+    clearTimeout(timeout);
+
+    const resHeaders = {};
+    upstream.headers.forEach((v, k) => { resHeaders[k] = v; });
+
+    const text = await upstream.text();
+    res.status(200).json({
+      status: upstream.status,
+      statusText: upstream.statusText,
+      headers: resHeaders,
+      body: text,
+    });
+  } catch (err) {
+    const timedOut = err.name === 'AbortError';
+    res.status(200).json({
+      status: 0,
+      statusText: timedOut ? 'Request Timeout' : 'Network Error',
+      headers: {},
+      body: '',
+      error: timedOut ? 'Request timed out after 30 seconds.' : err.message,
+    });
+  }
+});
+
+// ══════════════════════════════════════════════════════════
 // COLLECTIONS
 // ══════════════════════════════════════════════════════════
 
